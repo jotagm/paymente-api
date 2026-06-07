@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      DATABASE_URL: postgres://payment:payment@postgres:5432/payment?sslmode=disable
+      JWT_SECRET: supersecret
+      API_SECRET: mysecret
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-localhost:4318}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment
+      POSTGRES_DB: payment
+    volumes:
+      - ./db/migrations:/docker-entrypoint-initdb.d
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
